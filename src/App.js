@@ -1,12 +1,12 @@
 import React, { useState, useEffect } from 'react';
-import { loadBibleVersions, loadBooks, loadChapters, loadSections, loadVerses, loadSelectedSection, loadSelectedVerse, search } from './Components/Api/Api';
+import { loadBibleVersions, loadBooks, loadChapters, loadSections, loadVerses, loadSelectedVerse, loadSelectedSection, search } from './Components/Api/Api';
+import { updateParamsInURL, getParameterByName, sortVersionsByLanguage, getVerseNumber } from './Components/Utils/Utils';
 import BibleVersionsList from './Components/BibleVersionsList/BibleVersionsList';
 import BooksList from './Components/BooksList/BooksList';
 import ChaptersList from './Components/ChaptersList/ChaptersList';
-import SearchResultsList from './Components/SearchResultsList/SearchResultsList';
-import SectionsList from './Components/SectionsList/SectionsList';
 import VersesList from './Components/VersesList/VersesList';
-
+import SectionsList from './Components/SectionsList/SectionsList';
+import SearchResultsList from './Components/SearchResultsList/SearchResultsList';
 
 const App = () => {
   const [params, setParams] = useState({});
@@ -42,23 +42,31 @@ const App = () => {
     setSearchResults([]);
 
     if (!bibleVersionID || !abbreviation) {
-      loadBibleVersions();
+      loadBibleVersions().then(versions => setBibleVersions(sortVersionsByLanguage(versions)));
     } else if (bibleSectionID) {
-      loadSelectedSection(bibleVersionID, abbreviation, bibleSectionID);
+      loadSelectedSection(bibleVersionID, abbreviation, bibleSectionID).then(section => {
+        setTitle(section.title);
+        setContent(section.content);
+      });
     } else if (query) {
-      search(query, 0, bibleVersionID, abbreviation);
+      search(query, 0, bibleVersionID, abbreviation).then(results => setSearchResults(results));
     } else if (bibleVersionID && !bibleBookID && !bibleChapterID && !bibleVerseID) {
-      loadBooks(bibleVersionID, abbreviation);
+      loadBooks(bibleVersionID, abbreviation).then(setBooks);
     } else if (bibleVersionID && bibleBookID) {
-      loadChapters(bibleVersionID, abbreviation, bibleBookID);
-      loadSections(bibleVersionID, abbreviation, bibleBookID);
+      loadChapters(bibleVersionID, abbreviation, bibleBookID).then(setChapters);
+      loadSections(bibleVersionID, abbreviation, bibleBookID).then(setSections);
     } else if (bibleVersionID && bibleChapterID) {
-      loadVerses(bibleVersionID, abbreviation, bibleChapterID);
+      loadVerses(bibleVersionID, abbreviation, bibleChapterID).then(({ content, verses }) => {
+        setContent(content);
+        setVerses(verses);
+      });
     } else if (bibleVersionID && bibleVerseID) {
-      loadSelectedVerse(bibleVersionID, abbreviation, bibleVerseID);
+      loadSelectedVerse(bibleVersionID, abbreviation, bibleVerseID).then(({ reference, content }) => {
+        setTitle(reference);
+        setContent(content);
+      });
     }
   };
-
 
   return (
     <div className="app">
